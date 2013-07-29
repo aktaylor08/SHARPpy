@@ -20,8 +20,7 @@ class skewT(QtGui.QFrame):
         self.hgt = self.size().height() - self.bpad
         self.brx = self.wid ; self.bry = self.hgt
         self.pmax = 1050.; self.pmin = 100.
-        self.roffset = self.wid * (1/9.)
-        self.barbx = self.brx + self.roffset / 2
+        self.barbx = self.brx + self.rpad / 2
         self.log_pmax = np.log(1050.); self.log_pmin = np.log(self.pmin)
         self.bltmpc = -50; self.brtmpc = 50; self.dt = 10
         self.xskew = 100 / 3.
@@ -69,10 +68,10 @@ class skewT(QtGui.QFrame):
                     self.pres_to_pix(self.pmax))
         pen = QtGui.QPen(QtCore.Qt.white, 2, QtCore.Qt.SolidLine)
         qp.setPen(pen)
-        qp.drawLine(self.lpad, self.tpad, self.brx+self.roffset, self.tpad)
-        qp.drawLine(self.brx+self.roffset, self.tpad, self.brx+self.roffset,
+        qp.drawLine(self.lpad, self.tpad, self.brx+self.rpad, self.tpad)
+        qp.drawLine(self.brx+self.rpad, self.tpad, self.brx+self.rpad,
                     self.bry)
-        qp.drawLine(self.brx+self.roffset, self.bry, self.lpad, self.bry)
+        qp.drawLine(self.brx+self.rpad, self.bry, self.lpad, self.bry)
         qp.drawLine(self.lpad, self.bry, self.lpad, self.tpad)
 
     def draw_isotherm_labels(self, t, qp):
@@ -111,7 +110,7 @@ class skewT(QtGui.QFrame):
         qp.setPen(pen)
         qp.setFont(self.label_font)
         y1 = self.pres_to_pix(p)
-        offset = int((self.brx - self.lpad) * 0.01)
+        offset = 5
         if flag:
             qp.drawLine(self.lpad, y1, self.brx, y1)
             qp.drawText(0, y1-20, self.lpad-4, 40,
@@ -119,8 +118,8 @@ class skewT(QtGui.QFrame):
                         str(int(p)))
         else:
             qp.drawLine(self.lpad, y1, self.lpad+offset, y1)
-            qp.drawLine(self.brx+self.roffset-offset, y1,
-                        self.brx+self.roffset, y1)
+            qp.drawLine(self.brx+self.rpad-offset, y1,
+                        self.brx+self.rpad, y1)
 
     def tmpc_to_pix(self, t, p):
         '''
