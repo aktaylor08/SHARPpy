@@ -1,12 +1,14 @@
 import numpy as np
+import sharppy.sharptab as tab
+from sharppy.sharptab.constants import *
 from PySide import QtGui, QtCore
 
 
-__all__ = ['skewT', 'plotSkewT']
+__all__ = ['backgroundSkewT', 'plotSkewT']
 
-class skewT(QtGui.QFrame):
+class backgroundSkewT(QtGui.QFrame):
     def __init__(self):
-        super(skewT, self).__init__()
+        super(backgroundSkewT, self).__init__()
         self.initUI()
 
     def initUI(self):
@@ -28,6 +30,7 @@ class skewT(QtGui.QFrame):
         self.yrange = np.tan(np.deg2rad(self.xskew)) * self.xrange
         self.label_font = QtGui.QFont('Helvetica', 11)
         self.environment_trace_font = QtGui.QFont('Helvetica', 11)
+        self.in_plot_font = QtGui.QFont('Helvetica', 7)
 
     def resizeEvent(self, e):
         '''
@@ -36,11 +39,18 @@ class skewT(QtGui.QFrame):
         '''
         self.initUI()
 
-    def paint(self):
+    def paintEvent(self, e):
+        '''
+        Draw the background features of a Skew-T.
+
+        '''
         qp = QtGui.QPainter()
         qp.begin(self)
         for t in range(self.bltmpc-100, self.brtmpc+self.dt+100, self.dt):
             self.draw_isotherm(t, qp)
+        # for tw in range(-160, 61, 10): self.draw_moist_adiabat(tw, qp)
+        for theta in range(-70, 350, 20): self.draw_dry_adiabat(theta, qp)
+        for w in [2] + range(4, 33, 4): self.draw_mixing_ratios(w, 600, qp)
         self.draw_frame(qp)
         for p in [1000, 850, 700, 500, 300, 200, 100]:
             self.draw_isobar(p, 1, qp)
@@ -48,10 +58,73 @@ class skewT(QtGui.QFrame):
             self.draw_isotherm_labels(t, qp)
         for p in range(int(self.pmax), int(self.pmin-50), -50):
             self.draw_isobar(p, 0, qp)
-
-        # qp.drawLine(self.barbx, self.tpad, self.barbx, self.bry)
-
         qp.end()
+
+    def draw_dry_adiabat(self, theta, qp):
+        '''
+        Draw the given moist adiabat.
+
+        '''
+        pen = QtGui.QPen(QtGui.QColor("#333333"), 1)
+        pen.setStyle(QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        dt = -10
+        presvals = np.arange(int(self.pmax), int(self.pmin)+dt, dt)
+        thetas = tab.thermo.theta(presvals, theta)
+        thetas = ((theta + ZEROCNK) / ((1000. / presvals)**ROCP)) - ZEROCNK
+        for t, p in zip(thetas, presvals):
+            x = self.tmpc_to_pix(t, p)
+            y = self.pres_to_pix(p)
+            if p == self.pmax:
+                x2 = x; y2 = y
+            else:
+                x1 = x2; y1 = y2
+                x2 = x; y2 = y
+                qp.drawLine(x1, y1, x2, y2)
+
+    def draw_moist_adiabat(self, tw, qp):
+        '''
+        Draw the given moist adiabat.
+
+        '''
+        pen = QtGui.QPen(QtGui.QColor("#663333"), 1)
+        pen.setStyle(QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        dt = -10
+        for p in range(int(self.pmax), int(self.pmin)+dt, dt):
+            t = tab.thermo.wetlift(1000., tw, p)
+            x = self.tmpc_to_pix(t, p)
+            y = self.pres_to_pix(p)
+            if p == self.pmax:
+                x2 = x; y2 = y
+            else:
+                x1 = x2; y1 = y2
+                x2 = x; y2 = y
+                qp.drawLine(x1, y1, x2, y2)
+
+    def draw_mixing_ratios(self, w, pmin, qp):
+        '''
+        Draw the mixing ratios.
+
+        '''
+        t = tab.thermo.temp_at_mixrat(w, self.pmax)
+        x1 = self.tmpc_to_pix(t, self.pmax)
+        y1 = self.pres_to_pix(self.pmax)
+        t = tab.thermo.temp_at_mixrat(w, pmin)
+        x2 = self.tmpc_to_pix(t, pmin)
+        y2 = self.pres_to_pix(pmin)
+        rectF = QtCore.QRectF(x2-5, y2-10, 10, 10)
+        pen = QtGui.QPen(QtGui.QColor('#000000'), 1, QtCore.Qt.SolidLine)
+        brush = QtGui.QBrush(QtCore.Qt.SolidPattern)
+        qp.setPen(pen)
+        qp.setBrush(brush)
+        qp.drawRect(rectF)
+        pen = QtGui.QPen(QtGui.QColor('#006600'), 1, QtCore.Qt.SolidLine)
+        qp.setPen(pen)
+        qp.setFont(self.in_plot_font)
+        qp.drawLine(x1, y1, x2, y2)
+        qp.drawText(rectF, QtCore.Qt.AlignBottom | QtCore.Qt.AlignCenter,
+            str(int(w)))
 
     def draw_frame(self, qp):
         '''
@@ -79,7 +152,7 @@ class skewT(QtGui.QFrame):
         Add Isotherm Labels.
 
         '''
-        pen = QtGui.QPen(QtGui.QColor("FFFFFF"))
+        pen = QtGui.QPen(QtGui.QColor("#FFFFFF"))
         qp.setFont(self.label_font)
         x1 = self.tmpc_to_pix(t, self.pmax)
         qp.drawText(x1-10, self.bry+2, 20, 20,
@@ -145,25 +218,37 @@ class skewT(QtGui.QFrame):
         Function to convert a Y pixel to a pressure level.
 
         '''
-        return y
+        scl1 = np.log(self.pmax) - np.log(self.pmin)
+        scl2 = self.bry - float(y)
+        scl3 = self.bry - self.tly + 1
+        return self.pmax / np.exp((scl2 / scl3) * scl1)
 
 
-class plotSkewT(skewT):
+
+
+class plotSkewT(backgroundSkewT):
     def __init__(self, pres, hght, tmpc, dwpc):
         super(plotSkewT, self).__init__()
         self.pres = pres; self.hght = hght
         self.tmpc = tmpc; self.dwpc = dwpc
 
-    def paintEvent(self, e):
+    def resizeEvent(self, e):
         '''
-        Draw the background features of a Skew-T.
+        Resize the plot based on adjusting the main window.
 
         '''
-        super(plotSkewT, self).paint()
+        super(plotSkewT, self).resizeEvent(e)
+
+    def paintEvent(self, e):
+        '''
+        Plot the data used in a Skew-T.
+
+        '''
+        super(plotSkewT, self).paintEvent(e)
         qp = QtGui.QPainter()
         qp.begin(self)
-        self.drawTrace(self.dwpc, QtGui.QColor("#00CC00"), qp)
-        self.drawTrace(self.tmpc, QtGui.QColor("#CC0000"), qp)
+        self.drawTrace(self.dwpc, QtGui.QColor("#00FF00"), qp)
+        self.drawTrace(self.tmpc, QtGui.QColor("#FF0000"), qp)
         qp.end()
 
     def drawTrace(self, data, color, qp):
@@ -173,8 +258,13 @@ class plotSkewT(skewT):
         '''
         pen = QtGui.QPen(QtGui.QColor(color), 3, QtCore.Qt.SolidLine)
         qp.setPen(pen)
-        x = self.tmpc_to_pix(data, self.pres)
-        y = self.pres_to_pix(self.pres)
+        mask1 = data.mask
+        mask2 = self.pres.mask
+        mask = np.maximum(mask1, mask2)
+        data = data[~mask]
+        pres = self.pres[~mask]
+        x = self.tmpc_to_pix(data, pres)
+        y = self.pres_to_pix(pres)
         for i in range(x.shape[0]-1):
             if y[i+1] > self.tpad:
                 qp.drawLine(x[i], y[i], x[i+1], y[i+1])
