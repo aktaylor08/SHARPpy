@@ -1,11 +1,9 @@
 import sys
 import numpy as np
 from PySide import QtGui, QtCore
-from sharppy.viz import plotSkewT, Hodo
+from sharppy.viz import plotSkewT, plotHodo
 
-
-from sounding import p,h,T,Td
-pres = p; hght = h; tmpc = T; dwpc = Td
+from sounding import prof
 
 
 # Setup Application
@@ -24,7 +22,7 @@ grid.setVerticalSpacing(2)
 centralWidget.setLayout(grid)
 
 # Handle the Upper Left
-sound = plotSkewT(pres, hght, tmpc, dwpc)
+sound = plotSkewT(prof.pres, prof.hght, prof.tmpc, prof.dwpc)
 sound.setContentsMargins(0, 0, 0, 0)
 grid.addWidget(sound, 0, 0, 3, 1)
 
@@ -48,14 +46,18 @@ ur.setLayout(grid2)
 speed_vs_height = QtGui.QFrame()
 speed_vs_height.setObjectName("svh")
 inferred_temp_advection = QtGui.QFrame()
-hodo = Hodo()
+hodo = plotHodo(prof.hght, prof.u, prof.v)
+storm_slinky = QtGui.QFrame()
 thetae_vs_pressure = QtGui.QFrame()
 srwinds_vs_height = QtGui.QFrame()
-grid2.addWidget(speed_vs_height, 0, 0, 10, 5)
-grid2.addWidget(inferred_temp_advection, 0, 5, 10, 3)
-grid2.addWidget(hodo, 0, 8, 7, 18)
-grid2.addWidget(thetae_vs_pressure, 7, 8, 3, 9)
-grid2.addWidget(srwinds_vs_height, 7, 17, 3, 9)
+watch_type = QtGui.QFrame()
+grid2.addWidget(speed_vs_height, 0, 0, 10, 3)
+grid2.addWidget(inferred_temp_advection, 0, 3, 10, 2)
+grid2.addWidget(hodo, 0, 5, 8, 24)
+grid2.addWidget(storm_slinky, 8, 5, 2, 6)
+grid2.addWidget(thetae_vs_pressure, 8, 11, 2, 6)
+grid2.addWidget(srwinds_vs_height, 8, 17, 2, 6)
+grid2.addWidget(watch_type, 8, 23, 2, 6)
 urparent_grid.addWidget(ur)
 grid.addWidget(urparent, 0, 1, 3, 1)
 
@@ -65,16 +67,18 @@ text.setStyleSheet("QFrame {"
                    "  background-color: rgb(0, 0, 0);"
                    "  border-width: 2px;"
                    "  border-style: solid;"
-                   "  border-color: rgb(0, 150, 255);}")
+                   "  border-color: #3399CC;}")
 grid3 = QtGui.QGridLayout()
 grid3.setHorizontalSpacing(0)
 thermo = QtGui.QFrame()
 grid3.setContentsMargins(0, 0, 0, 0)
 kinematic = QtGui.QFrame()
-misc = QtGui.QFrame()
+misc1 = QtGui.QFrame()
+misc2 = QtGui.QFrame()
 grid3.addWidget(thermo, 0, 0)
 grid3.addWidget(kinematic, 0, 1)
-grid3.addWidget(misc, 0, 2)
+grid3.addWidget(misc1, 0, 2)
+grid3.addWidget(misc2, 0, 3)
 text.setLayout(grid3)
 grid.addWidget(text, 3, 0, 1, 2)
 mainWindow.show()
