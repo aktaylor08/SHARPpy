@@ -48,7 +48,7 @@ class backgroundSkewT(QtGui.QFrame):
         qp.begin(self)
         for t in range(self.bltmpc-100, self.brtmpc+self.dt+100, self.dt):
             self.draw_isotherm(t, qp)
-        # for tw in range(-160, 61, 10): self.draw_moist_adiabat(tw, qp)
+        for tw in range(-160, 61, 10): self.draw_moist_adiabat(tw, qp)
         for theta in range(-70, 350, 20): self.draw_dry_adiabat(theta, qp)
         for w in [2] + range(4, 33, 4): self.draw_mixing_ratios(w, 600, qp)
         self.draw_frame(qp)
